@@ -2,27 +2,44 @@
 <html>
 <head>
     <title>Fake Job Analyzer</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
 
-<h2>Fake Job Analyzer</h2>
+<body class="bg-light">
 
-<form method="post">
-    <textarea name="job_description" rows="10" cols="50" placeholder="Paste job description"></textarea><br><br>
-    <button type="submit">Analyze</button>
-</form>
+<div class="container mt-5">
 
-{% if result %}
-    <h3>{{ result }}</h3>
-    <p>Risk Score: {{ risk }}%</p>
+    <div class="card shadow p-4">
+        <h2 class="text-center mb-4">🚨 Fake Job Analyzer</h2>
 
-    <h4>Reasons:</h4>
-    <ul>
-        {% for r in reasons %}
-            <li>{{ r }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
+        <form method="post">
+            <div class="mb-3">
+                <textarea class="form-control" name="job_description" rows="6" placeholder="Paste job description here..."></textarea>
+            </div>
+
+            <div class="text-center">
+                <button class="btn btn-primary">Analyze</button>
+            </div>
+        </form>
+
+        {% if result %}
+        <div class="mt-4">
+            <h4>{{ result }}</h4>
+            <p><strong>Risk Score:</strong> {{ risk }}%</p>
+
+            <h5>Reasons:</h5>
+            <ul>
+                {% for r in reasons %}
+                    <li>{{ r }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
 
 </body>
 </html>
