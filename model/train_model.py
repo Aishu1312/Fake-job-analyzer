@@ -22,7 +22,7 @@ model = LogisticRegression()
 model.fit(X_vec, y)
 
 # Save model
-pickle.dump(model, open("model.pkl", "wb"))
-pickle.dump(vectorizer, open("vectorizer.pkl", "wb"))
+model = pickle.load(open("model/model.pkl", "rb"))
+vectorizer = pickle.load(open("model/vectorizer.pkl", "rb"))
 
 print("✅ Model & Vectorizer saved successfully")
