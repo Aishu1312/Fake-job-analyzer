@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fake Job Analyzer</title>
+</head>
+<body>
+
+<h2>Fake Job Analyzer</h2>
+
+<form method="post">
+    <textarea name="job_description" rows="10" cols="50" placeholder="Paste job description"></textarea><br><br>
+    <button type="submit">Analyze</button>
+</form>
+
+{% if result %}
+    <h3>{{ result }}</h3>
+    <p>Risk Score: {{ risk }}%</p>
+
+    <h4>Reasons:</h4>
+    <ul>
+        {% for r in reasons %}
+            <li>{{ r }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+</body>
+</html>
