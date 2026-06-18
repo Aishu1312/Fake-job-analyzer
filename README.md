@@ -167,6 +167,4 @@ The project demonstrates the practical application of artificial intelligence in
 
 [8] Research Papers on Online Recruitment Fraud Detection and Machine Learning Applications.
 
-Deploy instantly on [Streamlit Cloud](https://share.streamlit.io) — see deployment steps below.
-
 MIT License — feel free to use, modify, and distribute.
