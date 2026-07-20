@@ -59,8 +59,7 @@ def export_pdf(results, summary_stats):
                 # Handle long reasons
                 pdf.multi_cell(190, 6, txt=f"- {reason}")
         pdf.ln(5)
-        
-    return pdf.output(dest='S').encode('latin1')
+    return bytes(pdf.output())
 
 def _results_to_dataframe(results):
     """
