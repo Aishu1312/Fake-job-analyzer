@@ -12,78 +12,28 @@ from sklearn.linear_model import LogisticRegression
 import streamlit as st
 
 # ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
-ROOT       = pathlib.Path(__file__).parent
-MODEL_PATH = ROOT / "model" / "model.pkl"
-VEC_PATH   = ROOT / "model" / "vectorizer.pkl"
-
-# ---------------------------------------------------------------------------
 # Page config  (must be the first Streamlit call)
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Fake Job Analyzer AI",
     page_icon="🕵️",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="expanded",
 )
 
+from ui.styles import apply_custom_css
+from ui.single_analysis import render_single_analysis
+from ui.batch_analysis import render_batch_analysis
+
+# Apply global premium CSS
+apply_custom_css()
+
 # ---------------------------------------------------------------------------
-# Inlined utilities  (no external imports – works on every host)
+# Paths
 # ---------------------------------------------------------------------------
-
-def clean_text(text: str) -> str:
-    text = text.lower()
-    text = re.sub(r"[^a-zA-Z0-9\s]", "", text)
-    return text
-
-
-SCAM_KEYWORDS = [
-    "payment", "fee", "registration", "whatsapp", "urgent",
-    "earn money", "no experience", "work from home", "guaranteed income",
-    "wire transfer", "western union", "money order", "upfront",
-    "investment required", "send money", "training fee",
-    "background check fee", "unlimited earnings", "passive income",
-    "be your own boss", "free laptop", "free iphone",
-    "data entry", "copy paste", "part time from home",
-]
-
-KEYWORD_DESCRIPTIONS = {
-    "payment":             "Requests payment from applicant",
-    "fee":                 "Mentions fees or charges",
-    "registration":        "Requires registration fee",
-    "whatsapp":            "Uses WhatsApp for contact (unusual for legit jobs)",
-    "urgent":              "Creates false urgency",
-    "earn money":          "Vague earning promises",
-    "no experience":       "Claims no experience needed (suspicious if paired with high pay)",
-    "work from home":      "Unverified work-from-home offer",
-    "guaranteed income":   "Promises guaranteed income",
-    "wire transfer":       "Mentions wire transfer",
-    "western union":       "Mentions Western Union payment",
-    "money order":         "Requests money order",
-    "upfront":             "Requires upfront payment",
-    "investment required": "Requires financial investment",
-    "send money":          "Asks to send money",
-    "training fee":        "Charges training fee",
-    "background check fee":"Charges for background check",
-    "unlimited earnings":  "Claims unlimited earnings",
-    "passive income":      "Promises passive income",
-    "be your own boss":    "Uses 'be your own boss' pitch",
-    "free laptop":         "Promises free laptop",
-    "free iphone":         "Promises free iPhone",
-    "data entry":          "Simple data entry tasks (often low-quality jobs)",
-    "copy paste":          "Copy-paste tasks (common in scams)",
-    "part time from home": "Unverified part-time work-from-home offer",
-}
-
-
-def calculate_risk(text: str):
-    text_lower = text.lower()
-    found      = [kw for kw in SCAM_KEYWORDS if kw in text_lower]
-    score      = min(len(found) * 12, 100)
-    reasons    = [KEYWORD_DESCRIPTIONS[kw] for kw in found]
-    return score, reasons
-
+ROOT       = pathlib.Path(__file__).parent
+MODEL_PATH = ROOT / "model" / "model.pkl"
+VEC_PATH   = ROOT / "model" / "vectorizer.pkl"
 
 # ---------------------------------------------------------------------------
 # Training data  (fully inline – no CSV / external files needed)
@@ -162,7 +112,7 @@ def _build_training_df():
 # ---------------------------------------------------------------------------
 # Model – load from disk or train fresh
 # ---------------------------------------------------------------------------
-@st.cache_resource(show_spinner="🤖 Training AI model on first launch…")
+@st.cache_resource(show_spinner="🤖 Loading AI Engine...")
 def load_model():
     if MODEL_PATH.exists() and VEC_PATH.exists():
         try:
@@ -193,81 +143,7 @@ def load_model():
 
     return model, vec
 
-
-# ---------------------------------------------------------------------------
-# Voice transcription  (graceful fallback if google unreachable)
-# ---------------------------------------------------------------------------
-def transcribe_audio(audio_bytes: bytes) -> str:
-    try:
-        import speech_recognition as sr
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
-            audio_data = recognizer.record(source)
-        return recognizer.recognize_google(audio_data)
-    except Exception:
-        return ""
-
-
-# ---------------------------------------------------------------------------
-# AI response builder
-# ---------------------------------------------------------------------------
-def build_ai_response(pred, fake_prob, real_prob, risk_score, reasons):
-    if pred == 1:
-        opening  = "🚨 **This job posting appears to be FRAUDULENT.**"
-        tone     = "very high — strong scam signals detected" if fake_prob > 75 else "notable — treat with caution"
-        ml_line  = f"My ML model is **{fake_prob:.1f}% confident** this is a fake job, which is {tone}."
-    else:
-        opening  = "✅ **This job posting appears to be GENUINE.**"
-        conf_str = "very high confidence" if real_prob > 80 else "reasonably confident"
-        ml_line  = f"My ML model is **{real_prob:.1f}% confident** this is a legitimate job posting — {conf_str}."
-
-    risk_label = (
-        "🔴 **HIGH** — serious red flags present"   if risk_score > 50 else
-        "🟠 **MEDIUM** — some suspicious elements"  if risk_score > 25 else
-        "🟡 **LOW** — minor caution advised"         if risk_score > 0  else
-        "🟢 **NONE** — no scam keywords detected"
-    )
-
-    out  = f"{opening}\n\n"
-    out += f"**ML Analysis:** {ml_line}\n\n"
-    out += f"**Risk Score:** {risk_score}/100 — {risk_label}\n\n"
-
-    if reasons:
-        out += "**⚠️ Suspicious Signals Detected:**\n"
-        for r in reasons:
-            out += f"- {r}\n"
-        out += "\n"
-
-    if pred == 1:
-        out += (
-            "**💡 Recommendation:** Do **not** apply. Avoid sharing personal information, "
-            "paying any fees, or contacting via WhatsApp. Report this posting to the job platform."
-        )
-    elif risk_score > 0:
-        out += (
-            "**💡 Recommendation:** Looks real, but minor flags detected. "
-            "Verify the company independently before proceeding."
-        )
-    else:
-        out += (
-            "**💡 Recommendation:** Looks like a legitimate opportunity. "
-            "Still research the company before sharing sensitive personal details."
-        )
-    return out
-
-
-def analyse(text: str) -> str:
-    cleaned  = clean_text(text)
-    vec_out  = vectorizer.transform([cleaned])
-    pred     = model.predict(vec_out)[0]
-    proba    = model.predict_proba(vec_out)[0]
-    risk, rs = calculate_risk(text)
-    return build_ai_response(pred, proba[1] * 100, proba[0] * 100, risk, rs)
-
-
-# ---------------------------------------------------------------------------
-# Load model at startup
-# ---------------------------------------------------------------------------
+# Force load model to cache
 model, vectorizer = load_model()
 
 # ---------------------------------------------------------------------------
@@ -285,25 +161,6 @@ SAMPLE_REAL = (
     "high availability. Requirements: 3+ years experience with React and Node.js, familiarity "
     "with PostgreSQL and REST APIs. Remote-friendly. Competitive salary, equity, and benefits."
 )
-
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": (
-                "👋 Hi! I'm your **Fake Job Analyzer AI**.\n\n"
-                "I detect whether any job posting is **genuine or fraudulent** using ML + NLP.\n\n"
-                "**How to use me:**\n"
-                "- 💬 **Type** a job description in the chat box below\n"
-                "- 🎤 **Record** using the voice recorder (then click Analyse)\n"
-                "- 📋 Try a **sample job** from the sidebar\n\n"
-                "Paste or speak any job posting — I'll analyse it instantly!"
-            ),
-        }
-    ]
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -333,78 +190,19 @@ with st.sidebar:
     st.markdown(
         "1. **Type or record** a job description\n"
         "2. ML model classifies using TF-IDF + Logistic Regression\n"
-        "3. Risk engine scans 25 scam keywords\n"
-        "4. Get a verdict with full reasoning\n"
-    )
-    st.divider()
-    st.markdown("### ⚠️ Common Scam Signals")
-    st.markdown(
-        "- 💸 Upfront fees or registration\n"
-        "- 📲 WhatsApp-only contact\n"
-        "- 🎁 Free gadgets promised\n"
-        "- ⚡ No experience + high pay\n"
-        "- 💰 Guaranteed income claims\n"
-        "- 🔴 'Urgent' / limited seats language\n"
+        "3. Risk engine scans for granular scam indicators\n"
+        "4. **Upload folders/files** in Batch Analysis mode\n"
     )
     st.divider()
     st.caption("Made by Aishwarya Lala · SVPCET")
 
 # ---------------------------------------------------------------------------
-# Main UI
+# Tabs for Main UI
 # ---------------------------------------------------------------------------
-st.markdown("## 🕵️ Fake Job Analyzer AI")
-st.markdown(
-    "**Type** or 🎤 **record** any job description — "
-    "I'll instantly tell you if it's real or fake."
-)
+tab1, tab2 = st.tabs(["💬 Single Job Analysis", "📂 Batch Job Analysis"])
 
-# Voice recorder
-with st.expander("🎤 Voice Input — Record a Job Description", expanded=False):
-    st.caption("Click the microphone, speak the job description, then click **Analyse Recording**.")
-    audio_value = st.audio_input("Record job description")
-    if audio_value is not None:
-        if st.button("🔍 Analyse Recording", type="primary", use_container_width=True):
-            with st.spinner("Transcribing audio…"):
-                transcript = transcribe_audio(audio_value.getvalue())
-            if transcript:
-                st.success(f"**Transcribed:** {transcript}")
-                st.session_state["inject_text"] = transcript
-                st.rerun()
-            else:
-                st.warning(
-                    "Could not transcribe audio. "
-                    "Please speak clearly or type the description manually."
-                )
+with tab1:
+    render_single_analysis()
 
-st.divider()
-
-# Render chat history
-for msg in st.session_state.messages:
-    avatar = "🕵️" if msg["role"] == "assistant" else "👤"
-    with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"])
-
-# Inject from sidebar / voice
-if "inject_text" in st.session_state:
-    inject = st.session_state.pop("inject_text")
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(inject)
-    st.session_state.messages.append({"role": "user", "content": inject})
-    with st.chat_message("assistant", avatar="🕵️"):
-        with st.spinner("Analysing…"):
-            response = analyse(inject)
-        st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.rerun()
-
-# Chat input
-if prompt := st.chat_input("Paste a job description here…"):
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("assistant", avatar="🕵️"):
-        with st.spinner("Analysing…"):
-            response = analyse(prompt)
-        st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.rerun()
+with tab2:
+    render_batch_analysis()
