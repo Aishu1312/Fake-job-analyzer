@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from utils.file_parser import parse_file
 from utils.risk_calculator import calculate_granular_risk
-from streamlit_app import load_model # We can refactor load_model later or keep it imported
+from services.model_service import load_model
 import streamlit as st
 
 def process_batch(uploaded_files, progress_callback=None):

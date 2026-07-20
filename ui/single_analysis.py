@@ -1,6 +1,6 @@
 import streamlit as st
 import io
-import streamlit_app as main_app # To use load_model from main scope
+
 
 def render_single_analysis():
     st.markdown("## 🕵️ Fake Job Analyzer AI - Single Job")
@@ -89,8 +89,9 @@ def transcribe_audio(audio_bytes: bytes) -> str:
         return ""
 
 def analyse(text: str) -> str:
+    from services.model_service import load_model
     # We call the globally loaded model and vectorizer
-    model, vectorizer = main_app.load_model()
+    model, vectorizer = load_model()
     
     from utils.feature_extractor import clean_text
     from utils.risk_calculator import calculate_risk
