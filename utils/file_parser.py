@@ -69,6 +69,18 @@ def parse_html(file_bytes):
     except Exception as e:
         return None, f"HTML Parsing Error: {e}"
 
+def parse_image(file_bytes):
+    try:
+        import pytesseract
+        from PIL import Image
+        img = Image.open(io.BytesIO(file_bytes))
+        text = pytesseract.image_to_string(img)
+        return text, None
+    except ImportError:
+        return None, "OCR libraries (pytesseract/Pillow) not installed"
+    except Exception as e:
+        return None, f"Image OCR Error: {e}"
+
 def parse_file(filename, file_bytes):
     """
     Parses a file based on its extension.
@@ -91,5 +103,7 @@ def parse_file(filename, file_bytes):
         return parse_json(file_bytes)
     elif ext in [".html", ".htm"]:
         return parse_html(file_bytes)
+    elif ext in [".png", ".jpg", ".jpeg"]:
+        return parse_image(file_bytes)
     else:
         return None, f"Unsupported Format: {ext}"

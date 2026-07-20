@@ -7,12 +7,12 @@ from services.export_service import export_csv, export_excel, export_pdf
 
 def render_batch_analysis():
     st.markdown("## 📂 Batch Job Analysis")
-    st.markdown("Upload multiple job descriptions (PDF, DOCX, TXT, CSV, JSON, HTML, MD) or an entire folder.")
+    st.markdown("Upload multiple job descriptions (PDF, DOCX, TXT, CSV, JSON, HTML, MD, PNG, JPG) or an entire folder.")
     
     uploaded_files = st.file_uploader(
         "Drag and drop files or folders here",
         accept_multiple_files=True,
-        type=['pdf', 'docx', 'txt', 'csv', 'json', 'html', 'md']
+        type=['pdf', 'docx', 'txt', 'csv', 'json', 'html', 'md', 'png', 'jpg', 'jpeg']
     )
     
     if uploaded_files:
